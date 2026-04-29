@@ -7,6 +7,10 @@ import {
   performSearch,
   handleSaveSelected,
   toggleSemanticControls,
+  loadLibrary,
+  handleFetchAllBibtex,
+  handleExportBibtex,
+  updateExportButton,
 } from './ui.js';
 
 /**
@@ -79,6 +83,11 @@ function initTabs() {
       if (panel) {
         panel.classList.add('active');
       }
+
+      // Load library when switching to library tab
+      if (targetId === 'tab-library') {
+        loadLibrary();
+      }
     });
   });
 }
@@ -131,6 +140,54 @@ function initSearch() {
 }
 
 /**
+ * Set up library tab event bindings.
+ */
+function initLibrary() {
+  // Debounce helper
+  let debounceTimer;
+  function debounce(fn, ms) {
+    return (...args) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  // Filter text → debounced loadLibrary
+  document.getElementById('lib-filter-text')?.addEventListener('input', debounce(() => {
+    loadLibrary();
+  }, 300));
+
+  // Keyword dropdown
+  document.getElementById('lib-filter-keyword')?.addEventListener('change', () => loadLibrary());
+
+  // Tag dropdown
+  document.getElementById('lib-filter-tag')?.addEventListener('change', () => loadLibrary());
+
+  // Sort dropdown
+  document.getElementById('lib-sort')?.addEventListener('change', () => loadLibrary());
+
+  // Refresh button
+  document.getElementById('lib-refresh-btn')?.addEventListener('click', () => loadLibrary());
+
+  // Select-all checkbox
+  document.getElementById('lib-select-all')?.addEventListener('change', (e) => {
+    const checks = document.querySelectorAll('.lib-check');
+    checks.forEach(cb => { cb.checked = e.target.checked; });
+    updateExportButton();
+  });
+
+  // Export selected BibTeX
+  document.getElementById('lib-export-selected')?.addEventListener('click', () => {
+    const checked = document.querySelectorAll('.lib-check:checked');
+    const ids = [...checked].map(cb => parseInt(cb.closest('.oar-card').dataset.workId, 10));
+    if (ids.length) handleExportBibtex(ids);
+  });
+
+  // Fetch all BibTeX
+  document.getElementById('lib-fetch-all-bibtex')?.addEventListener('click', handleFetchAllBibtex);
+}
+
+/**
  * Main initialization — runs on DOMContentLoaded.
  */
 async function init() {
@@ -146,6 +203,9 @@ async function init() {
 
   // Set up search tab
   initSearch();
+
+  // Set up library tab
+  initLibrary();
 
   // Register service worker
   registerServiceWorker();

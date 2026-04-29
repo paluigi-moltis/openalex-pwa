@@ -2,8 +2,8 @@
 // UI rendering — Search tab
 // ============================================
 
-import { addWork, isWorkSaved, getSetting } from './db.js';
-import { searchWorks } from './api.js';
+import { addWork, isWorkSaved, getSetting, listWorks, getAllKeywords, getAllTags, removeWork, exportBibtex } from './db.js';
+import { searchWorks, fetchBibtex, fetchRelatedWorks } from './api.js';
 
 // ---------- Search state ----------
 let searchResults = [];
@@ -320,6 +320,410 @@ function escapeAttr(str) {
     .replace(/>/g, '&gt;');
 }
 
+// ============================================
+// UI rendering — Library tab
+// ============================================
+
+// ---- Library State ----
+let libraryWorks = [];
+
+// ---- loadLibrary ----
+
+async function loadLibrary() {
+  const search = $('lib-filter-text').value.trim();
+  const keyword = $('lib-filter-keyword').value;
+  const tag = $('lib-filter-tag').value;
+  const sortBy = $('lib-sort').value;
+
+  const statusEl = $('lib-status');
+  statusEl.innerHTML = '<span class="oar-spinner me-2"></span>Loading library...';
+  $('lib-results').innerHTML = '';
+
+  try {
+    // Populate filter dropdowns
+    await populateFilterDropdowns();
+
+    const works = await listWorks({ search, keyword, tag, sortBy });
+    libraryWorks = works;
+
+    renderLibraryCards(works);
+    statusEl.textContent = `${works.length} work${works.length !== 1 ? 's' : ''} in library`;
+  } catch (err) {
+    console.error('loadLibrary error:', err);
+    statusEl.textContent = 'Failed to load library.';
+  }
+}
+
+// ---- renderLibraryCards ----
+
+function renderLibraryCards(works) {
+  const container = $('lib-results');
+  container.innerHTML = '';
+
+  // Reset batch controls
+  $('lib-select-all').checked = false;
+  updateExportButton();
+
+  if (!works.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="bi bi-book"></i>
+        <h5 class="mb-2">Your Library</h5>
+        <p>Saved works and citations will appear here. Start by searching and saving works.</p>
+      </div>`;
+    return;
+  }
+
+  works.forEach(work => {
+    container.insertAdjacentHTML('beforeend', buildLibraryCard(work));
+  });
+
+  attachLibraryCardListeners(container);
+}
+
+// ---- buildLibraryCard ----
+
+function buildLibraryCard(work) {
+  const authors = formatAuthors(work.authors);
+  const keywordsHtml = work.keywords && work.keywords.length
+    ? `<div class="mt-1">${work.keywords.slice(0, 6).map(kw => `<span class="oar-chip oar-chip-keyword">${escapeHtml(kw)}</span>`).join('')}</div>`
+    : '';
+  const tagsHtml = work.tags && work.tags.length
+    ? `<div class="mt-1">${work.tags.map(t => `<span class="oar-chip oar-chip-tag">${escapeHtml(t)}</span>`).join('')}</div>`
+    : '';
+
+  const bibtexIndicator = work.hasBibtex
+    ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> BibTeX</span>'
+    : '<span class="text-danger"><i class="bi bi-x-circle"></i> No BibTeX</span>';
+
+  const journalHtml = work.journal
+    ? `<div class="oar-card-meta"><i class="bi bi-journal-text me-1"></i>${escapeHtml(work.journal)}</div>`
+    : '';
+
+  const doiHtml = work.doi
+    ? `<a href="https://doi.org/${escapeHtml(work.doi)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> DOI</a>`
+    : '';
+
+  const openalexHtml = work.openalexId
+    ? `<a href="https://openalex.org/${escapeHtml(work.openalexId)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> OpenAlex</a>`
+    : '';
+
+  const year = work.publication_year ?? '—';
+  const citations = (work.cited_by_count ?? 0).toLocaleString();
+  const type = work.type ? `<span class="text-capitalize">${escapeHtml(work.type)}</span>` : '';
+
+  return `
+    <div class="oar-card" data-work-id="${work.id}">
+      <div class="d-flex gap-3">
+        <div class="form-check pt-1">
+          <input type="checkbox" class="form-check-input lib-check">
+        </div>
+        <div class="flex-grow-1">
+          <div class="oar-card-title">${escapeHtml(work.title || 'Untitled')}</div>
+          <div class="oar-card-meta">
+            ${year} · ${citations} citations${type ? ' · ' + type : ''} · ${bibtexIndicator}
+          </div>
+          ${authors ? `<div class="oar-card-meta">${authors}</div>` : ''}
+          ${journalHtml}
+          ${tagsHtml}
+          ${keywordsHtml}
+          <div class="mt-1 d-flex gap-3">
+            ${doiHtml}
+            ${openalexHtml}
+          </div>
+        </div>
+        <div class="d-flex flex-column gap-1">
+          <button class="btn btn-sm btn-outline-primary lib-fetch-bibtex" title="Fetch BibTeX" ${work.hasBibtex ? 'disabled' : ''}>
+            <i class="bi bi-file-earmark-code"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary lib-related" title="Related works">
+            <i class="bi bi-diagram-3"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary lib-referenced" title="Referenced works">
+            <i class="bi bi-book"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-warning lib-edit" title="Edit">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger lib-remove" title="Remove">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ---- attachLibraryCardListeners ----
+
+function attachLibraryCardListeners(container) {
+  // Checkboxes
+  container.querySelectorAll('.lib-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const allChecks = container.querySelectorAll('.lib-check');
+      $('lib-select-all').checked = [...allChecks].every(c => c.checked);
+      updateExportButton();
+    });
+  });
+
+  // Fetch BibTeX
+  container.querySelectorAll('.lib-fetch-bibtex').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.oar-card');
+      handleFetchBibtex(card.dataset.workId, btn);
+    });
+  });
+
+  // Related works
+  container.querySelectorAll('.lib-related').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.oar-card');
+      const work = libraryWorks.find(w => String(w.id) === card.dataset.workId);
+      if (!work?.openalexId) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="oar-spinner"></span>';
+      try {
+        const related = await fetchRelatedWorks(work.openalexId);
+        if (related && related.length) {
+          const names = related.slice(0, 5).map(r => r.title || 'Untitled').join('\n• ');
+          alert(`Related works (${related.length}):\n\n• ${names}${related.length > 5 ? '\n...' : ''}`);
+        } else {
+          alert('No related works found.');
+        }
+      } catch (err) {
+        console.error('Related works error:', err);
+        alert('Failed to fetch related works.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-diagram-3"></i>';
+      }
+    });
+  });
+
+  // Referenced works
+  container.querySelectorAll('.lib-referenced').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.oar-card');
+      const work = libraryWorks.find(w => String(w.id) === card.dataset.workId);
+      if (!work?.openalexId) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="oar-spinner"></span>';
+      try {
+        const { fetchWorkById } = await import('./api.js');
+        const detail = await fetchWorkById(work.openalexId);
+        const refs = detail?.referenced_works || [];
+        if (refs.length) {
+          alert(`Referenced works (${refs.length}):\n\n${refs.slice(0, 10).join('\n')}${refs.length > 10 ? '\n...' : ''}`);
+        } else {
+          alert('No referenced works found.');
+        }
+      } catch (err) {
+        console.error('Referenced works error:', err);
+        alert('Failed to fetch referenced works.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-book"></i>';
+      }
+    });
+  });
+
+  // Edit
+  container.querySelectorAll('.lib-edit').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const card = btn.closest('.oar-card');
+      const workId = parseInt(card.dataset.workId, 10);
+      const work = libraryWorks.find(w => w.id === workId);
+      if (!work) return;
+
+      const newTitle = prompt('Edit title:', work.title || '');
+      if (newTitle === null) return; // cancelled
+
+      const { getWork, setAbstract } = await import('./db.js');
+      const newAbstract = prompt('Edit abstract:', work.abstract || '');
+      if (newAbstract === null) return; // cancelled
+
+      try {
+        await import('./db.js').then(db => db.db.works.update(workId, { title: newTitle }));
+        if (work.abstract !== newAbstract) {
+          await setAbstract(workId, newAbstract);
+        }
+        await loadLibrary();
+      } catch (err) {
+        console.error('Edit error:', err);
+        alert('Failed to update work.');
+      }
+    });
+  });
+
+  // Remove
+  container.querySelectorAll('.lib-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.oar-card');
+      handleRemoveWork(card.dataset.workId);
+    });
+  });
+}
+
+// ---- handleFetchBibtex ----
+
+async function handleFetchBibtex(workId, btnElement) {
+  const work = libraryWorks.find(w => String(w.id) === String(workId));
+  if (!work) return;
+
+  btnElement.disabled = true;
+  btnElement.innerHTML = '<span class="oar-spinner"></span>';
+
+  try {
+    const email = await getSetting('email');
+    const result = await fetchBibtex(work.doi, email);
+
+    if (result) {
+      const { setBibtex } = await import('./db.js');
+      await setBibtex(parseInt(workId, 10), result);
+      btnElement.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+      btnElement.title = 'BibTeX fetched';
+      // Update the bibtex indicator in the card
+      const indicator = btnElement.closest('.oar-card').querySelector('.text-danger');
+      if (indicator) {
+        indicator.className = 'text-success';
+        indicator.innerHTML = '<i class="bi bi-check-circle-fill"></i> BibTeX';
+      }
+      // Update local state
+      work.hasBibtex = true;
+      work.bibtex = result;
+    } else {
+      btnElement.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i>';
+      btnElement.title = 'No BibTeX found for this DOI';
+      btnElement.disabled = false;
+    }
+  } catch (err) {
+    console.error('handleFetchBibtex error:', err);
+    btnElement.innerHTML = '<i class="bi bi-file-earmark-code"></i>';
+    btnElement.title = 'Fetch failed — retry';
+    btnElement.disabled = false;
+  }
+}
+
+// ---- handleRemoveWork ----
+
+async function handleRemoveWork(workId) {
+  const work = libraryWorks.find(w => String(w.id) === String(workId));
+  const title = work?.title || 'this work';
+  if (!window.confirm(`Remove "${title}" from your library?`)) return;
+
+  try {
+    await removeWork(parseInt(workId, 10));
+    await loadLibrary();
+  } catch (err) {
+    console.error('handleRemoveWork error:', err);
+    alert('Failed to remove work.');
+  }
+}
+
+// ---- handleFetchAllBibtex ----
+
+async function handleFetchAllBibtex() {
+  const missing = libraryWorks.filter(w => !w.hasBibtex && w.doi);
+  if (!missing.length) {
+    alert('All works with DOIs already have BibTeX entries.');
+    return;
+  }
+
+  const btn = $('lib-fetch-all-bibtex');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  const statusEl = $('lib-status');
+  const prevStatus = statusEl.textContent;
+
+  let fetched = 0;
+  const total = missing.length;
+
+  for (const work of missing) {
+    fetched++;
+    statusEl.textContent = `Fetching BibTeX ${fetched}/${total}...`;
+    btn.innerHTML = `<i class="bi bi-download me-1"></i> ${fetched}/${total}`;
+
+    try {
+      const email = await getSetting('email');
+      const result = await fetchBibtex(work.doi, email);
+      if (result) {
+        const { setBibtex } = await import('./db.js');
+        await setBibtex(work.id, result);
+        work.hasBibtex = true;
+        work.bibtex = result;
+      }
+    } catch (err) {
+      console.error(`Fetch BibTeX error for ${work.doi}:`, err);
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = originalHtml;
+
+  await loadLibrary();
+}
+
+// ---- handleExportBibtex ----
+
+async function handleExportBibtex(ids) {
+  try {
+    const text = await exportBibtex(ids);
+    if (!text.trim()) {
+      alert('No BibTeX entries to export. Fetch BibTeX first for the selected works.');
+      return;
+    }
+    downloadBibtex(text);
+  } catch (err) {
+    console.error('handleExportBibtex error:', err);
+    alert('Failed to export BibTeX.');
+  }
+}
+
+function downloadBibtex(text, filename = 'references.bib') {
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---- populateFilterDropdowns ----
+
+async function populateFilterDropdowns() {
+  const keywordSelect = $('lib-filter-keyword');
+  const tagSelect = $('lib-filter-tag');
+
+  const [keywords, tags] = await Promise.all([getAllKeywords(), getAllTags()]);
+
+  // Preserve current selection
+  const currentKeyword = keywordSelect.value;
+  const currentTag = tagSelect.value;
+
+  // Populate keywords
+  keywordSelect.innerHTML = '<option value="">All Keywords</option>';
+  keywords.forEach(kw => {
+    keywordSelect.insertAdjacentHTML('beforeend',
+      `<option value="${escapeAttr(kw)}"${kw === currentKeyword ? ' selected' : ''}>${escapeHtml(kw)}</option>`);
+  });
+
+  // Populate tags
+  tagSelect.innerHTML = '<option value="">All Tags</option>';
+  tags.forEach(t => {
+    tagSelect.insertAdjacentHTML('beforeend',
+      `<option value="${escapeAttr(t)}"${t === currentTag ? ' selected' : ''}>${escapeHtml(t)}</option>`);
+  });
+}
+
+// ---- updateExportButton ----
+
+function updateExportButton() {
+  const checked = $('lib-results').querySelectorAll('.lib-check:checked');
+  $('lib-export-selected').disabled = checked.length === 0;
+}
+
 // ---------- Exports ----------
 
 export {
@@ -328,4 +732,8 @@ export {
   handleSaveWork,
   handleSaveSelected,
   toggleSemanticControls,
+  loadLibrary,
+  handleFetchAllBibtex,
+  handleExportBibtex,
+  updateExportButton,
 };

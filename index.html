@@ -161,11 +161,57 @@
 
     <!-- Library Tab -->
     <section id="tab-library" class="tab-panel" role="tabpanel">
-      <div class="empty-state">
-        <i class="bi bi-book"></i>
-        <h5 class="mb-2">Your Library</h5>
-        <p>Saved works and citations will appear here. Start by searching and saving works.</p>
+      <!-- Library Controls -->
+      <div class="row g-2 mb-3">
+        <div class="col-12 col-md-4 col-lg-3">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-funnel"></i></span>
+            <input type="text" id="lib-filter-text" class="form-control" placeholder="Filter by title or abstract...">
+            <button class="btn btn-oar-outline" id="lib-refresh-btn" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+          <select class="form-select form-select-sm" id="lib-filter-keyword">
+            <option value="">All Keywords</option>
+          </select>
+          <label class="form-label text-oar-muted small d-md-none">Keyword</label>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+          <select class="form-select form-select-sm" id="lib-filter-tag">
+            <option value="">All Tags</option>
+          </select>
+          <label class="form-label text-oar-muted small d-md-none">Tag</label>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+          <select class="form-select form-select-sm" id="lib-sort">
+            <option value="date_added">Date added</option>
+            <option value="publication_year">Newest</option>
+            <option value="cited_by_count">Most cited</option>
+            <option value="title">Title</option>
+          </select>
+          <label class="form-label text-oar-muted small d-md-none">Sort</label>
+        </div>
       </div>
+
+      <!-- Batch Controls -->
+      <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+        <input type="checkbox" class="form-check-input" id="lib-select-all">
+        <label class="form-check-label small" for="lib-select-all">Select all</label>
+        <button class="btn btn-sm btn-oar-primary" id="lib-export-selected" disabled>
+          <i class="bi bi-file-earmark-code me-1"></i> Export Selected BibTeX
+        </button>
+        <button class="btn btn-sm btn-oar-outline" id="lib-fetch-all-bibtex">
+          <i class="bi bi-download me-1"></i> Fetch All BibTeX
+        </button>
+      </div>
+
+      <!-- Status -->
+      <div id="lib-status" class="small text-oar-muted mb-2"></div>
+
+      <hr class="my-2">
+
+      <!-- Library Cards Container -->
+      <div id="lib-results"></div>
     </section>
 
     <!-- Settings Tab -->
