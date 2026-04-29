@@ -11,6 +11,10 @@ import {
   handleFetchAllBibtex,
   handleExportBibtex,
   updateExportButton,
+  initEditDialog,
+  openEditDialog,
+  saveEditDialog,
+  openRelatedDialog,
 } from './ui.js';
 
 /**
@@ -185,6 +189,9 @@ function initLibrary() {
 
   // Fetch all BibTeX
   document.getElementById('lib-fetch-all-bibtex')?.addEventListener('click', handleFetchAllBibtex);
+
+  // Edit dialog — save button
+  document.getElementById('edit-save-btn')?.addEventListener('click', saveEditDialog);
 }
 
 /**
@@ -206,6 +213,9 @@ async function init() {
 
   // Set up library tab
   initLibrary();
+
+  // Initialize edit dialog event listeners
+  initEditDialog();
 
   // Register service worker
   registerServiceWorker();

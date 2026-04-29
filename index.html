@@ -223,6 +223,63 @@
       </div>
     </section>
 
+    <!-- ========== Edit Modal ========== -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Work</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea id="edit-notes" class="form-control" rows="3" placeholder="Add your notes..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Abstract</label>
+              <textarea id="edit-abstract" class="form-control" rows="4" placeholder="Edit abstract..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Tags (comma-separated)</label>
+              <input type="text" id="edit-tags-input" class="form-control" placeholder="machine learning, NLP, transformers">
+              <div id="edit-tags-suggestions" class="mt-1"></div>
+            </div>
+            <div class="mb-2">
+              <small class="text-oar-muted">Current tags:</small>
+              <div id="edit-current-tags" class="mt-1"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-oar-outline" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-oar-primary" id="edit-save-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== Related/Referenced Works Modal ========== -->
+    <div class="modal fade" id="relatedModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="related-modal-title"><i class="bi bi-diagram-3 me-2"></i>Related Works</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="related-loading" class="text-center py-4 d-none">
+              <div class="oar-spinner" style="width:2rem;height:2rem;border-width:3px;"></div>
+              <div id="related-progress" class="small text-oar-muted mt-2">Fetching works...</div>
+            </div>
+            <div id="related-results"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-oar-outline" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- ========== Footer ========== -->

@@ -2,8 +2,8 @@
 // UI rendering — Search tab
 // ============================================
 
-import { addWork, isWorkSaved, getSetting, listWorks, getAllKeywords, getAllTags, removeWork, exportBibtex } from './db.js';
-import { searchWorks, fetchBibtex, fetchRelatedWorks } from './api.js';
+import { addWork, isWorkSaved, getWork, setNotes, setAbstract, setTags, getSetting, listWorks, getAllKeywords, getAllTags, removeWork, exportBibtex } from './db.js';
+import { searchWorks, fetchBibtex, fetchRelatedWorks, fetchWorkById } from './api.js';
 
 // ---------- Search state ----------
 let searchResults = [];
@@ -477,26 +477,8 @@ function attachLibraryCardListeners(container) {
   container.querySelectorAll('.lib-related').forEach(btn => {
     btn.addEventListener('click', async () => {
       const card = btn.closest('.oar-card');
-      const work = libraryWorks.find(w => String(w.id) === card.dataset.workId);
-      if (!work?.openalexId) return;
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="oar-spinner"></span>';
-      try {
-        const related = await fetchRelatedWorks(work.openalexId);
-        if (related && related.length) {
-          const names = related.slice(0, 5).map(r => r.title || 'Untitled').join('\n• ');
-          alert(`Related works (${related.length}):\n\n• ${names}${related.length > 5 ? '\n...' : ''}`);
-        } else {
-          alert('No related works found.');
-        }
-      } catch (err) {
-        console.error('Related works error:', err);
-        alert('Failed to fetch related works.');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-diagram-3"></i>';
-      }
+      const workId = parseInt(card.dataset.workId, 10);
+      await openRelatedDialog(workId, 'related');
     });
   });
 
@@ -504,27 +486,8 @@ function attachLibraryCardListeners(container) {
   container.querySelectorAll('.lib-referenced').forEach(btn => {
     btn.addEventListener('click', async () => {
       const card = btn.closest('.oar-card');
-      const work = libraryWorks.find(w => String(w.id) === card.dataset.workId);
-      if (!work?.openalexId) return;
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="oar-spinner"></span>';
-      try {
-        const { fetchWorkById } = await import('./api.js');
-        const detail = await fetchWorkById(work.openalexId);
-        const refs = detail?.referenced_works || [];
-        if (refs.length) {
-          alert(`Referenced works (${refs.length}):\n\n${refs.slice(0, 10).join('\n')}${refs.length > 10 ? '\n...' : ''}`);
-        } else {
-          alert('No referenced works found.');
-        }
-      } catch (err) {
-        console.error('Referenced works error:', err);
-        alert('Failed to fetch referenced works.');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-book"></i>';
-      }
+      const workId = parseInt(card.dataset.workId, 10);
+      await openRelatedDialog(workId, 'referenced');
     });
   });
 
@@ -533,26 +496,7 @@ function attachLibraryCardListeners(container) {
     btn.addEventListener('click', async () => {
       const card = btn.closest('.oar-card');
       const workId = parseInt(card.dataset.workId, 10);
-      const work = libraryWorks.find(w => w.id === workId);
-      if (!work) return;
-
-      const newTitle = prompt('Edit title:', work.title || '');
-      if (newTitle === null) return; // cancelled
-
-      const { getWork, setAbstract } = await import('./db.js');
-      const newAbstract = prompt('Edit abstract:', work.abstract || '');
-      if (newAbstract === null) return; // cancelled
-
-      try {
-        await import('./db.js').then(db => db.db.works.update(workId, { title: newTitle }));
-        if (work.abstract !== newAbstract) {
-          await setAbstract(workId, newAbstract);
-        }
-        await loadLibrary();
-      } catch (err) {
-        console.error('Edit error:', err);
-        alert('Failed to update work.');
-      }
+      await openEditDialog(workId);
     });
   });
 
@@ -724,6 +668,185 @@ function updateExportButton() {
   $('lib-export-selected').disabled = checked.length === 0;
 }
 
+// ============================================
+// Edit Dialog — notes, abstract, tags
+// ============================================
+
+let editWorkId = null;
+let editAllTags = [];
+
+function initEditDialog() {
+  // Wire up tag input autocomplete
+  $('edit-tags-input')?.addEventListener('input', (e) => {
+    updateTagSuggestions(e.target.value);
+  });
+}
+
+async function openEditDialog(workId) {
+  editWorkId = workId;
+  const work = await getWork(workId);
+  if (!work) return;
+
+  // Populate fields
+  $('edit-notes').value = work.notes || '';
+  $('edit-abstract').value = work.abstract || '';
+  $('edit-tags-input').value = (work.tags || []).join(', ');
+  renderCurrentTags(work.tags || []);
+
+  // Load all tags for autocomplete suggestions
+  editAllTags = await getAllTags();
+
+  // Show modal
+  const modal = bootstrap.Modal.getOrCreateInstance($('editModal'));
+  modal.show();
+}
+
+function renderCurrentTags(tags) {
+  $('edit-current-tags').innerHTML = tags.length
+    ? tags.map(t => `<span class="oar-chip oar-chip-tag">${escapeHtml(t)}</span>`).join('')
+    : '<small class="text-oar-muted">No tags yet</small>';
+}
+
+function updateTagSuggestions(input) {
+  if (!input) { $('edit-tags-suggestions').innerHTML = ''; return; }
+  const query = input.toLowerCase().split(',').pop().trim();
+  if (!query) { $('edit-tags-suggestions').innerHTML = ''; return; }
+
+  const currentTags = input.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+  const matches = editAllTags.filter(t =>
+    t.toLowerCase().includes(query) &&
+    !currentTags.includes(t.toLowerCase())
+  ).slice(0, 8);
+
+  $('edit-tags-suggestions').innerHTML = matches.map(t =>
+    `<button type="button" class="oar-chip oar-chip-tag me-1 mt-1 border-0" onclick="window._addTagSuggestion('${escapeAttr(t)}')">${escapeHtml(t)}</button>`
+  ).join('');
+}
+
+// Global function for tag suggestion onclick
+window._addTagSuggestion = function(tag) {
+  const input = $('edit-tags-input');
+  const parts = input.value.split(',').map(s => s.trim()).filter(Boolean);
+  if (!parts.map(p => p.toLowerCase()).includes(tag.toLowerCase())) parts.push(tag);
+  input.value = parts.join(', ');
+  updateTagSuggestions(input.value);
+};
+
+async function saveEditDialog() {
+  if (!editWorkId) return;
+
+  const notes = $('edit-notes').value;
+  const abstract = $('edit-abstract').value;
+  const tagsStr = $('edit-tags-input').value;
+  const tags = tagsStr.split(',').map(t => t.trim()).filter(Boolean);
+
+  await Promise.all([
+    setNotes(editWorkId, notes),
+    setAbstract(editWorkId, abstract),
+    setTags(editWorkId, tags)
+  ]);
+
+  // Close modal and reload library
+  bootstrap.Modal.getInstance($('editModal'))?.hide();
+  await loadLibrary();
+}
+
+// ============================================
+// Related / Referenced Works Dialog
+// ============================================
+
+let relatedModalInstance = null;
+
+async function openRelatedDialog(workId, relationshipType) {
+  const work = await getWork(workId);
+  if (!work) return;
+
+  // Set title
+  const title = relationshipType === 'related' ? 'Related Works' : 'Referenced Works';
+  const icon = relationshipType === 'related' ? 'bi-diagram-3' : 'bi-book';
+  $('related-modal-title').innerHTML = `<i class="bi ${icon} me-2"></i>${title}`;
+
+  // Show modal with loading state immediately
+  $('related-loading').classList.remove('d-none');
+  $('related-progress').textContent = 'Fetching works...';
+  $('related-results').innerHTML = '';
+  relatedModalInstance = bootstrap.Modal.getOrCreateInstance($('relatedModal'));
+  relatedModalInstance.show();
+
+  try {
+    let relIds = [];
+
+    const apiKey = await getSetting('apiKey');
+    const detail = await fetchWorkById(work.openalexId, apiKey);
+
+    if (relationshipType === 'related') {
+      relIds = detail?.related_works || [];
+    } else {
+      relIds = detail?.referenced_works || [];
+    }
+
+    if (!relIds.length) {
+      $('related-loading').classList.add('d-none');
+      $('related-results').innerHTML = '<div class="empty-state"><p>No works found.</p></div>';
+      return;
+    }
+
+    // Limit to first 25 to avoid overwhelming the API
+    relIds = relIds.slice(0, 25);
+
+    // Fetch works with progress
+    const works = await fetchRelatedWorks(relIds, apiKey, (current, total) => {
+      $('related-progress').textContent = `Fetching ${current}/${total} works...`;
+    });
+
+    // Hide loading, show results
+    $('related-loading').classList.add('d-none');
+
+    if (!works.length) {
+      $('related-results').innerHTML = '<div class="empty-state"><p>Could not fetch works from OpenAlex.</p></div>';
+      return;
+    }
+
+    // Check which are already saved
+    const savedChecks = await Promise.all(works.map(w => isWorkSaved(w.openalexId)));
+
+    // Render simplified cards with save buttons
+    $('related-results').innerHTML = works.map((w, i) => {
+      const isSaved = savedChecks[i];
+      const authors = formatAuthors(w.authors);
+      const saveBtn = isSaved
+        ? '<span class="text-success"><i class="bi bi-check-lg"></i> Saved</span>'
+        : `<button class="btn btn-sm btn-oar-primary related-save-btn" data-work-json="${escapeAttr(JSON.stringify(w))}"><i class="bi bi-bookmark-plus me-1"></i>Save</button>`;
+
+      return `
+        <div class="oar-card mb-2">
+          <div class="d-flex gap-3">
+            <div class="flex-grow-1">
+              <div class="oar-card-title">${escapeHtml(w.title || 'Untitled')}</div>
+              <div class="oar-card-meta">${w.publication_year ?? '—'} · ${(w.cited_by_count ?? 0).toLocaleString()} citations</div>
+              ${authors ? `<div class="oar-card-meta">${authors}</div>` : ''}
+            </div>
+            <div class="d-flex align-items-start">${saveBtn}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Wire up save buttons
+    $('related-results').querySelectorAll('.related-save-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const workDict = JSON.parse(btn.dataset.workJson);
+        await addWork(workDict);
+        btn.disabled = true;
+        btn.outerHTML = '<span class="text-success"><i class="bi bi-check-lg"></i> Saved</span>';
+      });
+    });
+  } catch (err) {
+    console.error('openRelatedDialog error:', err);
+    $('related-loading').classList.add('d-none');
+    $('related-results').innerHTML = '<div class="empty-state"><p>Failed to fetch works. Please try again.</p></div>';
+  }
+}
+
 // ---------- Exports ----------
 
 export {
@@ -736,4 +859,8 @@ export {
   handleFetchAllBibtex,
   handleExportBibtex,
   updateExportButton,
+  initEditDialog,
+  openEditDialog,
+  saveEditDialog,
+  openRelatedDialog,
 };
