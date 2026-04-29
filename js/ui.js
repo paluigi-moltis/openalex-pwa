@@ -780,9 +780,9 @@ async function openRelatedDialog(workId, relationshipType) {
     const detail = await fetchWorkById(work.openalexId, apiKey);
 
     if (relationshipType === 'related') {
-      relIds = detail?.related_works || [];
+      relIds = (detail?.related_works || []).map(r => r.id);
     } else {
-      relIds = detail?.referenced_works || [];
+      relIds = (detail?.referenced_works || []).map(r => r.id);
     }
 
     if (!relIds.length) {
