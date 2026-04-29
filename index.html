@@ -92,11 +92,71 @@
 
     <!-- Search Tab -->
     <section id="tab-search" class="tab-panel active" role="tabpanel">
-      <div class="empty-state">
-        <i class="bi bi-search"></i>
-        <h5 class="mb-2">Search OpenAlex</h5>
-        <p>Search millions of scholarly works, authors, and topics from the OpenAlex catalog.</p>
+      <!-- Search Controls -->
+      <div class="row g-2 mb-3">
+        <div class="col-12 col-md">
+          <div class="input-group">
+            <input type="text" id="search-input" class="form-control" placeholder="Search works..." autofocus>
+            <button class="btn btn-oar-primary" id="search-btn" type="button">
+              <i class="bi bi-search me-1"></i> Search
+            </button>
+          </div>
+        </div>
       </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-sm-3 col-md-2">
+          <select class="form-select form-select-sm" id="search-mode">
+            <option value="keyword">Keyword</option>
+            <option value="semantic">Semantic</option>
+          </select>
+          <label class="form-label text-oar-muted small">Mode</label>
+        </div>
+        <div class="col-6 col-sm-3 col-md-2" id="scope-col">
+          <select class="form-select form-select-sm" id="search-scope">
+            <option value="default">Title + Abstract</option>
+            <option value="title">Title only</option>
+            <option value="fulltext">Full text</option>
+          </select>
+          <label class="form-label text-oar-muted small">Scope</label>
+        </div>
+        <div class="col-6 col-sm-3 col-md-2" id="sort-col">
+          <select class="form-select form-select-sm" id="search-sort">
+            <option value="relevance_score:desc">Relevance</option>
+            <option value="cited_by_count:desc">Most cited</option>
+            <option value="publication_year:desc">Newest</option>
+            <option value="publication_year:asc">Oldest</option>
+          </select>
+          <label class="form-label text-oar-muted small">Sort</label>
+        </div>
+        <div class="col-6 col-sm-3 col-md-2">
+          <select class="form-select form-select-sm" id="search-limit">
+            <option value="10">10 results</option>
+            <option value="25" selected>25 results</option>
+            <option value="50">50 results</option>
+          </select>
+          <label class="form-label text-oar-muted small">Per page</label>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div id="search-status" class="small text-oar-muted mb-2"></div>
+
+      <!-- Batch Controls (hidden by default) -->
+      <div id="search-batch" class="d-none mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <input type="checkbox" class="form-check-input" id="search-select-all">
+          <label class="form-check-label small" for="search-select-all">Select all</label>
+          <button class="btn btn-sm btn-oar-primary" id="search-save-selected">
+            <i class="bi bi-bookmark-plus me-1"></i> Save Selected
+          </button>
+        </div>
+      </div>
+
+      <hr class="my-2">
+
+      <!-- Results Container -->
+      <div id="search-results"></div>
     </section>
 
     <!-- Library Tab -->

@@ -3,6 +3,11 @@
 // ============================================
 
 import { db } from './db.js';
+import {
+  performSearch,
+  handleSaveSelected,
+  toggleSemanticControls,
+} from './ui.js';
 
 /**
  * Apply theme to the document.
@@ -92,6 +97,40 @@ function registerServiceWorker() {
 }
 
 /**
+ * Set up search tab event bindings.
+ */
+function initSearch() {
+  // Search button click
+  document.getElementById('search-btn')?.addEventListener('click', performSearch);
+
+  // Enter key on search input
+  document.getElementById('search-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      performSearch();
+    }
+  });
+
+  // Mode dropdown → toggle semantic controls
+  document.getElementById('search-mode')?.addEventListener('change', (e) => {
+    toggleSemanticControls(e.target.value);
+  });
+
+  // Select-all checkbox → toggle all result checkboxes
+  document.getElementById('search-select-all')?.addEventListener('change', (e) => {
+    const checks = document.querySelectorAll('.search-result-check');
+    checks.forEach(cb => {
+      if (!cb.disabled) {
+        cb.checked = e.target.checked;
+      }
+    });
+  });
+
+  // Save selected button
+  document.getElementById('search-save-selected')?.addEventListener('click', handleSaveSelected);
+}
+
+/**
  * Main initialization — runs on DOMContentLoaded.
  */
 async function init() {
@@ -104,6 +143,9 @@ async function init() {
 
   // Set up tabs
   initTabs();
+
+  // Set up search tab
+  initSearch();
 
   // Register service worker
   registerServiceWorker();
