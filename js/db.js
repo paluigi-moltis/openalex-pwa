@@ -248,10 +248,40 @@ async function setTags(workId, tags) {
 
 // ---------- 10. exportBibtex ----------
 
+/**
+ * Export BibTeX entries for given work IDs, appending notes and abstract
+ * as BibTeX fields (annote and abstract) when available.
+ */
 async function exportBibtex(ids) {
   const works = await db.works.where('id').anyOf(ids).toArray();
-  const entries = works.map(w => w.bibtex).filter(Boolean);
-  return entries.join('\n\n');
+  return works.map(w => {
+    if (!w.bibtex) return '';
+
+    let entry = w.bibtex;
+
+    // Append abstract if not already present in the BibTeX
+    if (w.abstract && !/\babstract\s*=/i.test(entry)) {
+      // BibTeX abstract: wrap in braces, escape special chars
+      const cleanAbstract = w.abstract
+        .replace(/\\/g, '\\\\')
+        .replace(/\{/g, '\\{')
+        .replace(/\}/g, '\\}')
+        .replace(/"/g, '\\"');
+      entry = entry.replace(/\}(\s*)$/, `, abstract = {${cleanAbstract}}$1`);
+    }
+
+    // Append notes/annotations if not already present
+    if (w.notes && !/\bannote\s*=/i.test(entry) && !/\bnote\s*=/i.test(entry)) {
+      const cleanNotes = w.notes
+        .replace(/\\/g, '\\\\')
+        .replace(/\{/g, '\\{')
+        .replace(/\}/g, '\\}')
+        .replace(/"/g, '\\"');
+      entry = entry.replace(/\}(\s*)$/, `, annote = {${cleanNotes}}$1`);
+    }
+
+    return entry;
+  }).filter(Boolean).join('\n\n');
 }
 
 // ---------- 11. getSetting / setSetting ----------

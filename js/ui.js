@@ -119,12 +119,15 @@ function buildResultCard(work, isSaved) {
     ? `<div class="oar-card-meta"><i class="bi bi-journal-text me-1"></i>${escapeHtml(work.journal)}</div>`
     : '';
 
-  const doiHtml = work.doi
-    ? `<a href="https://doi.org/${escapeHtml(work.doi)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> DOI</a>`
+  const doiUrl = work.doi
+    ? (work.doi.startsWith('http') ? work.doi : `https://doi.org/${work.doi}`)
+    : '';
+  const doiHtml = doiUrl
+    ? `<a href="${escapeHtml(doiUrl)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> DOI</a>`
     : '';
 
   const openalexUrl = work.openalexId
-    ? `https://openalex.org/${encodeURIComponent(work.openalexId)}`
+    ? (work.openalexId.startsWith('http') ? work.openalexId : `https://openalex.org/${work.openalexId}`)
     : '#';
 
   const scoreHtml = work.relevance_score
@@ -400,12 +403,18 @@ function buildLibraryCard(work) {
     ? `<div class="oar-card-meta"><i class="bi bi-journal-text me-1"></i>${escapeHtml(work.journal)}</div>`
     : '';
 
-  const doiHtml = work.doi
-    ? `<a href="https://doi.org/${escapeHtml(work.doi)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> DOI</a>`
+  const doiUrl = work.doi
+    ? (work.doi.startsWith('http') ? work.doi : `https://doi.org/${work.doi}`)
+    : '';
+  const doiHtml = doiUrl
+    ? `<a href="${escapeHtml(doiUrl)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> DOI</a>`
     : '';
 
-  const openalexHtml = work.openalexId
-    ? `<a href="https://openalex.org/${escapeHtml(work.openalexId)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> OpenAlex</a>`
+  const openalexUrl = work.openalexId
+    ? (work.openalexId.startsWith('http') ? work.openalexId : `https://openalex.org/${work.openalexId}`)
+    : '';
+  const openalexHtml = openalexUrl
+    ? `<a href="${escapeHtml(openalexUrl)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> OpenAlex</a>`
     : '';
 
   const year = work.publication_year ?? '—';
@@ -818,6 +827,18 @@ async function openRelatedDialog(workId, relationshipType) {
         ? '<span class="text-success"><i class="bi bi-check-lg"></i> Saved</span>'
         : `<button class="btn btn-sm btn-oar-primary related-save-btn" data-work-json="${escapeAttr(JSON.stringify(w))}"><i class="bi bi-bookmark-plus me-1"></i>Save</button>`;
 
+      const doiUrl = w.doi
+        ? (w.doi.startsWith('http') ? w.doi : `https://doi.org/${w.doi}`)
+        : '';
+      const openalexUrl = w.openalexId
+        ? (w.openalexId.startsWith('http') ? w.openalexId : `https://openalex.org/${w.openalexId}`)
+        : '';
+
+      const linksHtml = [
+        doiUrl ? `<a href="${escapeHtml(doiUrl)}" target="_blank" class="small text-oar-muted text-decoration-none me-2"><i class="bi bi-box-arrow-up-right"></i> DOI</a>` : '',
+        openalexUrl ? `<a href="${escapeHtml(openalexUrl)}" target="_blank" class="small text-oar-muted text-decoration-none"><i class="bi bi-box-arrow-up-right"></i> OpenAlex</a>` : ''
+      ].filter(Boolean).join('');
+
       return `
         <div class="oar-card mb-2">
           <div class="d-flex gap-3">
@@ -825,6 +846,7 @@ async function openRelatedDialog(workId, relationshipType) {
               <div class="oar-card-title">${escapeHtml(w.title || 'Untitled')}</div>
               <div class="oar-card-meta">${w.publication_year ?? '—'} · ${(w.cited_by_count ?? 0).toLocaleString()} citations</div>
               ${authors ? `<div class="oar-card-meta">${authors}</div>` : ''}
+              ${linksHtml ? `<div class="mt-1">${linksHtml}</div>` : ''}
             </div>
             <div class="d-flex align-items-start">${saveBtn}</div>
           </div>

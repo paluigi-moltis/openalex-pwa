@@ -88,9 +88,7 @@ function workToDict(w) {
     type: w.type || null,
     cited_by_count: w.cited_by_count || 0,
     relevance_score: w.relevance_score || null,
-    abstract: w.abstract
-      ? w.abstract.replace(/<jats[^>]*>/g, '').replace(/<\/jats>/g, '')
-      : null,
+    abstract: reconstructAbstract(w.abstract, w.abstract_inverted_index),
     journal: w.primary_location?.source?.display_name || null,
     authors: (w.authorships || []).map(a => ({
       id: a.author?.id,
@@ -254,6 +252,33 @@ async function fetchBibtex(doi, email = null) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Reconstruct abstract text from OpenAlex response.
+ * OpenAlex sometimes returns `abstract` (plain text with JATS tags),
+ * sometimes `abstract_inverted_index` (word→positions map), or both.
+ * Prefer the inverted index when available (more reliable), fall back to abstract.
+ */
+function reconstructAbstract(abstract, invertedIndex) {
+  // If we have an inverted index, reconstruct from it
+  if (invertedIndex && typeof invertedIndex === 'object' && Object.keys(invertedIndex).length > 0) {
+    const wordPositions = [];
+    for (const [word, positions] of Object.entries(invertedIndex)) {
+      for (const pos of positions) {
+        wordPositions.push({ word, pos });
+      }
+    }
+    wordPositions.sort((a, b) => a.pos - b.pos);
+    return wordPositions.map(wp => wp.word).join(' ');
+  }
+
+  // Fall back to plain abstract, stripping JATS tags
+  if (abstract) {
+    return abstract.replace(/<jats[^>]*>/g, '').replace(/<\/jats>/g, '');
+  }
+
+  return null;
+}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
