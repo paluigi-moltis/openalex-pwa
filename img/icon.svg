@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded rectangle background -->
+  <rect x="20" y="20" width="472" height="472" rx="80" fill="url(#bg)"/>
+  <!-- Book -->
+  <rect x="100" y="120" width="200" height="260" rx="8" fill="white" opacity="0.95"/>
+  <rect x="105" y="125" width="95" height="250" rx="4" fill="white"/>
+  <rect x="200" y="125" width="95" height="250" rx="4" fill="white"/>
+  <line x1="200" y1="120" x2="200" y2="380" stroke="#3b82f6" stroke-width="6"/>
+  <!-- Page lines -->
+  <line x1="120" y1="170" x2="185" y2="170" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="120" y1="200" x2="185" y2="200" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="120" y1="230" x2="185" y2="230" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="120" y1="260" x2="185" y2="260" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="120" y1="290" x2="185" y2="290" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="120" y1="320" x2="175" y2="320" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="215" y1="170" x2="280" y2="170" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="215" y1="200" x2="280" y2="200" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="215" y1="230" x2="280" y2="230" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="215" y1="260" x2="280" y2="260" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="215" y1="290" x2="280" y2="290" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <line x1="215" y1="320" x2="270" y2="320" stroke="#bfdbfe" stroke-width="8" stroke-linecap="round"/>
+  <!-- Magnifying glass -->
+  <circle cx="340" cy="310" r="90" fill="none" stroke="white" stroke-width="22" opacity="0.95"/>
+  <line x1="405" y1="375" x2="440" y2="410" stroke="white" stroke-width="28" stroke-linecap="round" opacity="0.95"/>
+</svg>

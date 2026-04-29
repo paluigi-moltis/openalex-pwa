@@ -8,7 +8,7 @@
 
 **Tech Stack:**
 - HTML5 + CSS3 + Vanilla JavaScript (ES2022, modules)
-- Tailwind CSS v3 (via CDN or built with Play CDN for dev)
+- Bootstrap 5 (via CDN) + custom CSS variables for theming
 - Dexie.js (IndexedDB wrapper) — client-side database
 - Web App Manifest + Service Worker — PWA installability
 - OpenAlex REST API (`https://api.openalex.org/works?...`)
@@ -895,7 +895,7 @@ No server-side runtime needed — pure static files.
 |---|---|---|
 | Framework | Vanilla JS | Small app, no build step, maximum simplicity |
 | Database | IndexedDB via Dexie.js | Structured storage, handles relationships, well-tested library |
-| Styling | Tailwind CSS | Rapid UI development, dark mode built-in, responsive utilities |
+| Styling | Bootstrap 5 via CDN | Rapid UI, dark mode via CSS variables, responsive grid/components |
 | API calls | Direct `fetch()` | No backend needed, OpenAlex has CORS support |
 | Secrets storage | IndexedDB | Consistent with library data; NOT encrypted (document limitation) |
 | BibTeX fetch | doi.org + Crossref fallback | Same two-step strategy as Flet app |
