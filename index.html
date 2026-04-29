@@ -216,10 +216,65 @@
 
     <!-- Settings Tab -->
     <section id="tab-settings" class="tab-panel" role="tabpanel">
-      <div class="empty-state">
-        <i class="bi bi-gear"></i>
-        <h5 class="mb-2">Settings</h5>
-        <p>Configure your preferences, API key, and theme options.</p>
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+          <h5 class="section-heading"><i class="bi bi-gear me-2"></i>Settings</h5>
+          
+          <!-- API Key -->
+          <div class="mb-3">
+            <label for="settings-apikey" class="form-label">OpenAlex API Key</label>
+            <div class="input-group">
+              <input type="password" id="settings-apikey" class="form-control" placeholder="Enter your API key (optional)">
+              <button class="btn btn-oar-outline" id="settings-toggle-key" type="button" title="Show/hide">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="form-text">Optional. Provides higher rate limits. <a href="https://openalex.org/register" target="_blank">Get an API key</a>.</div>
+          </div>
+          
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="settings-email" class="form-label">Polite Pool Email</label>
+            <input type="email" id="settings-email" class="form-control" placeholder="your@email.com">
+            <div class="form-text">Used for Crossref/doi.org requests. Increases rate limits.</div>
+          </div>
+          
+          <!-- Theme -->
+          <div class="mb-4">
+            <label for="settings-theme" class="form-label">Theme</label>
+            <select id="settings-theme" class="form-select">
+              <option value="system">System default</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          
+          <hr>
+          
+          <!-- Save button -->
+          <button class="btn btn-oar-primary w-100 mb-2" id="settings-save-btn">
+            <i class="bi bi-check-lg me-1"></i> Save Settings
+          </button>
+          
+          <!-- Status -->
+          <div id="settings-status" class="text-center small text-oar-muted"></div>
+          
+          <hr>
+          
+          <!-- Data Management -->
+          <h6 class="mb-3"><i class="bi bi-database me-2"></i>Data Management</h6>
+          
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-sm btn-oar-outline" id="settings-export-lib">
+              <i class="bi bi-download me-1"></i> Export Library
+            </button>
+            <button class="btn btn-sm btn-oar-outline" id="settings-import-lib">
+              <i class="bi bi-upload me-1"></i> Import Library
+            </button>
+            <input type="file" id="settings-import-file" accept=".json" class="d-none">
+          </div>
+          <div class="form-text">Export/Import your library as JSON for backup and transfer.</div>
+        </div>
       </div>
     </section>
 

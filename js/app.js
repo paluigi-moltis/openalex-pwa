@@ -15,6 +15,10 @@ import {
   openEditDialog,
   saveEditDialog,
   openRelatedDialog,
+  loadSettings,
+  saveSettings,
+  exportLibrary,
+  importLibrary,
 } from './ui.js';
 
 /**
@@ -91,6 +95,11 @@ function initTabs() {
       // Load library when switching to library tab
       if (targetId === 'tab-library') {
         loadLibrary();
+      }
+
+      // Load settings when switching to settings tab
+      if (targetId === 'tab-settings') {
+        loadSettings();
       }
     });
   });
@@ -195,6 +204,51 @@ function initLibrary() {
 }
 
 /**
+ * Set up settings tab event bindings.
+ */
+function initSettings() {
+  // Save button
+  document.getElementById('settings-save-btn')?.addEventListener('click', saveSettings);
+
+  // Toggle API key visibility
+  document.getElementById('settings-toggle-key')?.addEventListener('click', () => {
+    const input = document.getElementById('settings-apikey');
+    const icon = document.getElementById('settings-toggle-key').querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  });
+
+  // Theme selector — save immediately on change
+  document.getElementById('settings-theme')?.addEventListener('change', async (e) => {
+    const { setSetting } = await import('./db.js');
+    await setSetting('theme', e.target.value);
+    applyTheme(e.target.value);
+  });
+
+  // Export library
+  document.getElementById('settings-export-lib')?.addEventListener('click', exportLibrary);
+
+  // Import library — trigger hidden file input
+  document.getElementById('settings-import-lib')?.addEventListener('click', () => {
+    document.getElementById('settings-import-file').click();
+  });
+
+  // Import file selected
+  document.getElementById('settings-import-file')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importLibrary(file);
+      e.target.value = ''; // Reset so same file can be re-imported
+    }
+  });
+}
+
+/**
  * Main initialization — runs on DOMContentLoaded.
  */
 async function init() {
@@ -213,6 +267,10 @@ async function init() {
 
   // Set up library tab
   initLibrary();
+
+  // Initialize settings tab
+  initSettings();
+  await loadSettings();
 
   // Initialize edit dialog event listeners
   initEditDialog();

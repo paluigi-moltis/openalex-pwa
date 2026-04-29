@@ -2,7 +2,7 @@
 // UI rendering — Search tab
 // ============================================
 
-import { addWork, isWorkSaved, getWork, setNotes, setAbstract, setTags, getSetting, listWorks, getAllKeywords, getAllTags, removeWork, exportBibtex } from './db.js';
+import { db, addWork, isWorkSaved, getWork, setNotes, setAbstract, setTags, getSetting, setSetting, listWorks, getAllKeywords, getAllTags, removeWork, exportBibtex } from './db.js';
 import { searchWorks, fetchBibtex, fetchRelatedWorks, fetchWorkById } from './api.js';
 
 // ---------- Search state ----------
@@ -847,6 +847,107 @@ async function openRelatedDialog(workId, relationshipType) {
   }
 }
 
+// ============================================
+// Settings — API key, email, theme
+// ============================================
+
+async function loadSettings() {
+  const apiKey = await getSetting('apiKey') || '';
+  const email = await getSetting('email') || '';
+  const theme = await getSetting('theme') || 'system';
+
+  $('settings-apikey').value = apiKey;
+  $('settings-email').value = email;
+  $('settings-theme').value = theme;
+}
+
+async function saveSettings() {
+  const apiKey = $('settings-apikey').value.trim();
+  const email = $('settings-email').value.trim();
+  const theme = $('settings-theme').value;
+
+  await Promise.all([
+    setSetting('apiKey', apiKey),
+    setSetting('email', email),
+    setSetting('theme', theme),
+  ]);
+
+  // Apply theme
+  const { applyTheme } = await import('./app.js');
+  applyTheme(theme);
+
+  // Show confirmation
+  $('settings-status').innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Settings saved</span>';
+  setTimeout(() => { $('settings-status').textContent = ''; }, 3000);
+}
+
+// ============================================
+// Library Export/Import (JSON backup)
+// ============================================
+
+async function exportLibrary() {
+  const data = {
+    version: 1,
+    exported: new Date().toISOString(),
+    works: await db.works.toArray(),
+    authors: await db.authors.toArray(),
+    workAuthors: await db.workAuthors.toArray(),
+    workKeywords: await db.workKeywords.toArray(),
+    workTags: await db.workTags.toArray(),
+    workRelationships: await db.workRelationships.toArray(),
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `openalex-library-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importLibrary(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (!data.version || !data.works) {
+      alert('Invalid library file format.');
+      return;
+    }
+
+    const proceed = window.confirm(
+      `Import ${data.works.length} works? This will replace your existing library.`
+    );
+    if (!proceed) return;
+
+    // Clear existing data (fresh import)
+    await db.workAuthors.clear();
+    await db.workKeywords.clear();
+    await db.workTags.clear();
+    await db.workRelationships.clear();
+    await db.authors.clear();
+    await db.works.clear();
+
+    // Import new data
+    if (data.authors?.length) await db.authors.bulkAdd(data.authors);
+    if (data.works?.length) await db.works.bulkAdd(data.works);
+    if (data.workAuthors?.length) await db.workAuthors.bulkAdd(data.workAuthors);
+    if (data.workKeywords?.length) await db.workKeywords.bulkAdd(data.workKeywords);
+    if (data.workTags?.length) await db.workTags.bulkAdd(data.workTags);
+    if (data.workRelationships?.length) await db.workRelationships.bulkAdd(data.workRelationships);
+
+    $('settings-status').innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Imported ${data.works.length} works</span>`;
+    setTimeout(() => { $('settings-status').textContent = ''; }, 3000);
+
+    // Reload library if on that tab
+    await loadLibrary();
+  } catch (err) {
+    console.error('Import error:', err);
+    alert('Failed to import library file.');
+  }
+}
+
 // ---------- Exports ----------
 
 export {
@@ -863,4 +964,8 @@ export {
   openEditDialog,
   saveEditDialog,
   openRelatedDialog,
+  loadSettings,
+  saveSettings,
+  exportLibrary,
+  importLibrary,
 };
