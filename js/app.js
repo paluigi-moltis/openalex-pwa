@@ -2,7 +2,7 @@
 // OpenAlex Research Manager — App Entry Point
 // ============================================
 
-import { db } from './db.js';
+import { db } from './db.js?v=0.2.0';
 import {
   performSearch,
   handleSaveSelected,
@@ -19,7 +19,7 @@ import {
   saveSettings,
   exportLibrary,
   importLibrary,
-} from './ui.js';
+} from './ui.js?v=0.2.0';
 
 /**
  * Apply theme to the document.

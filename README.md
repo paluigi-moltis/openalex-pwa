@@ -29,6 +29,8 @@ Static files only — deploy to any static hosting:
 - **Vercel**: `vercel --prod`
 - **Local**: `npx serve .` or `python -m http.server`
 
+**Note on caching proxies:** app asset URLs carry a `?v=<version>` suffix (e.g. `css/style.css?v=0.2.0`), and the service worker cache name is versioned too. This busts stale caches held by reverse proxies (nginx/NPM) and browsers. When cutting a release: bump the version in `index.html` (footer + all `?v=` suffixes), in the `js/*.js` import specifiers, and in `sw.js` (`CACHE_NAME`, `CDN_CACHE`, and the `APP_SHELL` list).
+
 ## Usage
 
 1. Open the app in your browser (or install as PWA)

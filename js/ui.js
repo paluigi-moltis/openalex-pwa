@@ -2,8 +2,8 @@
 // UI rendering — Search tab
 // ============================================
 
-import { db, addWork, isWorkSaved, getWork, setNotes, setAbstract, setTags, getSetting, setSetting, listWorks, getAllKeywords, getAllTags, removeWork, exportBibtex } from './db.js';
-import { searchWorks, fetchBibtex, fetchRelatedWorks, fetchWorkById } from './api.js';
+import { db, addWork, isWorkSaved, getWork, setNotes, setAbstract, setTags, getSetting, setSetting, listWorks, getAllKeywords, getAllTags, removeWork, exportBibtex } from './db.js?v=0.2.0';
+import { searchWorks, fetchBibtex, fetchRelatedWorks, fetchWorkById } from './api.js?v=0.2.0';
 
 // ---------- Search state ----------
 let searchResults = [];

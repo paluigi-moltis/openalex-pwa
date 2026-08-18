@@ -4,24 +4,27 @@
 // cache fallback (offline support).
 // ============================================
 
-const CACHE_NAME = 'openalex-pwa-v2';
+const CACHE_NAME = 'openalex-pwa-v3';
 
-// App shell assets to pre-cache on install
+// App shell assets to pre-cache on install.
+// Asset URLs are versioned (?v=…) so a new release always resolves to
+// fresh URLs, immune to stale intermediary caches (e.g. reverse-proxy
+// caching). Bump the ?v= suffix together with CACHE_NAME on each release.
 const APP_SHELL = [
   './',
   './index.html',
-  './css/style.css',
-  './js/db.js',
-  './js/api.js',
-  './js/ui.js',
-  './js/app.js',
-  './manifest.json',
+  './css/style.css?v=0.2.0',
+  './js/db.js?v=0.2.0',
+  './js/api.js?v=0.2.0',
+  './js/ui.js?v=0.2.0',
+  './js/app.js?v=0.2.0',
+  './manifest.json?v=0.2.0',
   './img/icon-192.png',
   './img/icon-512.png'
 ];
 
 // CDN resources cache (Bootstrap, Dexie, icons)
-const CDN_CACHE = 'openalex-pwa-cdn-v2';
+const CDN_CACHE = 'openalex-pwa-cdn-v3';
 
 // OpenAlex API — always go to the network, never cache
 const API_PATTERN = /api\.openalex\.org/;
