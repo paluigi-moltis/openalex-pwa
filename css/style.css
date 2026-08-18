@@ -276,6 +276,15 @@ main {
   color: var(--oar-text);
 }
 
+/* Form helper text (e.g. Settings tab explanations) — theme-aware */
+.form-text {
+  color: var(--oar-text-muted);
+}
+
+.form-text a {
+  color: var(--oar-accent);
+}
+
 /* --- Buttons --- */
 .btn-oar-primary {
   background-color: var(--oar-accent);
