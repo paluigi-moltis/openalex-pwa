@@ -112,6 +112,20 @@ function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       console.log('[SW] Registered:', reg.scope);
+
+      // Auto-reload when a new service worker version activates
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker?.addEventListener('statechange', () => {
+          if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+            console.log('[SW] New version activated, reloading page…');
+            window.location.reload();
+          }
+        });
+      });
+
+      // Periodic update check for long-lived tabs
+      setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000);
     }).catch(err => {
       console.warn('[SW] Registration failed:', err);
     });

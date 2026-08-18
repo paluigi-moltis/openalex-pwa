@@ -2,6 +2,12 @@
 
 A Progressive Web App for searching [OpenAlex](https://openalex.org) scholarly works, managing a personal research library, and exporting BibTeX citations.
 
+> [!WARNING]
+> **Experimental project.** This software is provided with **no warranties**, to be used **at your own risk**. We welcome feedback, collaborators, and pull requests.
+
+> [!NOTE]
+> Results are fetched from [OpenAlex](https://openalex.org/). This project is **not affiliated with OpenAlex** — it is merely a helper to support you in managing your bibliography.
+
 ## Features
 
 - **Search** — Keyword and semantic search across millions of scholarly works from OpenAlex
@@ -81,9 +87,16 @@ openalex-pwa/
 │   ├── ui.js           # UI rendering (search, library, settings, dialogs)
 │   └── app.js          # App entry point, initialization, tab switching
 ├── img/                # PWA icons
+├── LICENSE             # MIT license
 └── README.md           # This file
 ```
 
+## Contributing
+
+Feedback, collaborators, and pull requests are welcome! Visit the [GitHub repository](https://github.com/paluigi-moltis/openalex-pwa) to open an issue or submit a PR.
+
 ## License
 
-MIT
+[MIT](LICENSE) — Copyright (c) 2026 Luigi Palumbo
+
+This project is experimental and provided with no warranties; use it at your own risk. It is not affiliated with OpenAlex — it is merely a helper to support you in managing your bibliography.

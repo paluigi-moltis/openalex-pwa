@@ -1,8 +1,10 @@
 // ============================================
 // OpenAlex Research Manager — Service Worker
+// Caching strategy: network-first with local
+// cache fallback (offline support).
 // ============================================
 
-const CACHE_NAME = 'openalex-pwa-v1';
+const CACHE_NAME = 'openalex-pwa-v2';
 
 // App shell assets to pre-cache on install
 const APP_SHELL = [
@@ -18,10 +20,10 @@ const APP_SHELL = [
   './img/icon-512.png'
 ];
 
-// CDN resources to cache on first use
-const CDN_CACHE = 'openalex-pwa-cdn-v1';
+// CDN resources cache (Bootstrap, Dexie, icons)
+const CDN_CACHE = 'openalex-pwa-cdn-v2';
 
-// OpenAlex API base — never cache these
+// OpenAlex API — always go to the network, never cache
 const API_PATTERN = /api\.openalex\.org/;
 
 // Install: pre-cache app shell
@@ -48,50 +50,45 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch: cache-first for local assets, network-first for API calls
+// Fetch: network-first for all assets, local cache fallback when offline
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Network-first for OpenAlex API calls
+  // Never intercept OpenAlex API calls — always hit the network
   if (API_PATTERN.test(url.hostname)) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => response)
-        .catch(() => caches.match(event.request))
-    );
     return;
   }
 
-  // Cache-first for CDN resources (Bootstrap, Dexie, etc.)
-  if (url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('unpkg.com')) {
-    event.respondWith(
-      caches.open(CDN_CACHE).then(cache =>
-        cache.match(event.request).then(cached => {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Network-first: fresh content when online, cached copy when offline
+  event.respondWith(
+    fetch(event.request)
+      .then(networkResponse => {
+        // Cache successful responses for offline use
+        if (networkResponse && networkResponse.ok && networkResponse.type !== 'opaque') {
+          const clone = networkResponse.clone();
+          const cacheName = url.origin === self.location.origin ? CACHE_NAME : CDN_CACHE;
+          caches.open(cacheName).then(cache => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() =>
+        caches.match(event.request).then(cached => {
           if (cached) return cached;
-          return fetch(event.request).then(response => {
-            if (response.ok) {
-              cache.put(event.request, response.clone());
-            }
-            return response;
+          // Navigations fall back to the cached app shell
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+          return new Response('Offline', {
+            status: 503,
+            statusText: 'Offline',
+            headers: { 'Content-Type': 'text/plain' }
           });
         })
       )
-    );
-    return;
-  }
-
-  // Cache-first for local app shell assets
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        // Cache successful same-origin navigations
-        if (response.ok && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      });
-    })
   );
 });

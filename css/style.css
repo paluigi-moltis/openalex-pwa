@@ -311,6 +311,17 @@ main {
   text-align: center;
 }
 
+.oar-footer-link {
+  color: var(--oar-footer-text);
+  text-decoration: none;
+}
+
+.oar-footer-link:hover,
+.oar-footer-link:focus {
+  color: var(--oar-accent);
+  text-decoration: underline;
+}
+
 /* --- Badge Overrides --- */
 .badge.bg-secondary {
   background-color: var(--oar-bg-secondary) !important;
